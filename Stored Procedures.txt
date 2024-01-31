@@ -1,0 +1,131 @@
+----------------- Create ----------------------------------------------------------------
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_createCustomer`(
+in name varchar(255),
+in email varchar(255),
+in phone varchar(13),
+in balance varchar(100)
+)
+BEGIN
+insert into bankappdata.customer values(uuid(),name,email,phone,balance,utc_timestamp());
+END
+
+
+
+-------------------------------------------------------------------------------------------
+
+
+
+
+
+
+--------------------------Delete-----------------------------------------------------------
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_deleteuser`(
+in id varchar(200)
+)
+BEGIN
+delete from bankappdata.customer where customer.id = id;
+END
+
+----------------------------------------------------------------------------------------------
+
+
+
+
+
+
+--------------------------------Retrieve-----------------------------------------------------
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_retrieveUser`(
+in sortOrder varchar(20),
+in sortDirection int,
+in searchText varchar(1000),
+in pageSize int,
+in pageIndex int
+)
+BEGIN
+
+declare searchQuery nvarchar(1000) default '';
+declare sortQuery nvarchar(1000) default'';
+declare valuestoSkip int default pageSize*(pageIndex-1);
+
+if(pageSize = 0) then
+set pageSize = 20;
+end if;
+
+if(pageIndex = 0) then
+set valuestoSkip = 0;
+end if;
+
+set searchText = upper(searchText);
+
+if(searchText != '' and searchText is not null) then
+set searchQuery = concat(" where (upper(name) like '%",searchText,"%' or upper(email) like '%",searchText,"%' or phone like '%",searchText,"%' or balance like '%",searchText,"%' or modified_on like '%",searchText,"%')");
+end if;
+
+if(sortOrder = '' or sortOrder is null) then
+set sortOrder = "name";
+end if;
+
+set sortQuery = concat(" ORDER BY ",sortOrder);
+
+if(sortDirection = 1) then
+set sortQuery = concat(sortQuery," DESC ");
+else
+set sortQuery = concat(sortQuery," ASC ");
+end if;
+
+set sortQuery = concat(sortQuery,"LIMIT ",pageSize," OFFSET ",valuestoSkip);
+
+set @QueryString = concat("select * from bankappdata.customer",searchQuery,sortQuery);
+prepare SearchQuery from @QueryString;
+execute SearchQuery;
+END
+
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+---------------------------------------------------Update--------------------------------------------------------------------------------------------------
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_updateUser`(
+in id varchar(200),
+in name varchar(255),
+in email varchar(255),
+in phone varchar(10),
+in balance varchar(100)
+)
+BEGIN
+
+if(name = '') then 
+set name = null;
+end if;
+
+if(email = '') then
+set email = null;
+end if;
+
+if(phone = '') then
+set phone = null;
+end if;
+
+if(balance = '') then
+set balance = null;
+end if;
+
+update bankappdata.customer set 
+customer.name = ifnull(name,customer.name),
+ customer.email = ifnull(email,customer.email),
+ customer.phone = ifnull(phone,customer.phone), 
+ customer.balance = ifnull(balance,customer.balance), 
+ customer.modified_on = utc_timestamp() 
+ where customer.id = id; 
+END
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
